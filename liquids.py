@@ -38,6 +38,7 @@ def remove_comments(file_path):
         with open(out_file_path, "w") as nf:
             for line in f:
                 nf.write(re.sub("//.*", "", line))
+        os.remove(file_path)
         os.rename(out_file_path, file_path)
 
 for f in liquidfiles_all:
