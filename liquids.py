@@ -28,27 +28,16 @@ liquidfiles_all = []
 for dir in input_dirs:
     liquidfiles_all += [f for f in os.scandir(dir) if re.search(".(liquid|patch)$" , f.name)]
 
-def remove_comments(file_path):
-    with open(file_path) as f:
-        if not any(re.search("//", line) for line in f):
-            return
-
-    with open(file_path) as f:
-        out_file_path = file_path.with_name(file_path.name + ".tmp")
-        with open(out_file_path, "w") as nf:
-            for line in f:
-                nf.write(re.sub("//.*", "", line))
-        os.remove(file_path)
-        os.rename(out_file_path, file_path)
-
 for f in liquidfiles_all:
-    shutil.copy(f.path, liquid_dir / f.name)
+    with open(f, "r") as infile:
+        with open(liquid_dir / f.name, "w") as outfile:
+            for line in infile:
+                # Remove comments
+                outfile.write(re.sub("//.*", "", line))
 
 newfiles = [liquid_dir / f.name for f in liquidfiles_all]
 
-for f in newfiles:
-    remove_comments(f)
-
+# Split by liquids & patches
 new_liquids = [f for f in newfiles if f.suffix == ".liquid"]
 new_patches = [f for f in newfiles if f.suffix == ".patch"]
 
@@ -63,6 +52,7 @@ for name, liquid in liquids.items():
     liquid_ids[liquid["liquidId"]] = name
 
 def process_patch(name, entry):
+    # If patch is for a liquid we don't have, skip
     if not name in liquids:
         return
 
@@ -113,6 +103,12 @@ def process_interaction(liquid1, liquid2):
     if result:
         return result
 
+# This stuff is gross but works
+# I wanted hashmaps but lists and sets are not hashable in python,
+# so we convert a list to a set, then back to a list, and to a string
+# This is probably a really bad idea, but it *looks* like converting a
+# set to a list always returns the items in the same order.
+# If I find out this is not the case, we'll start sorting instead.
 interaction_sets = {}
 
 def pair2hash(pair):
@@ -136,11 +132,11 @@ for intpair, res in interaction_sets.items():
     inputs.append(intpair)
     int_by_result[res] = inputs
 
-with open(f"{args.output}/liquids.json", "w") as f:
+with open(output_dir / "liquids.json", "w") as f:
     json.dump(liquids, f, indent=4)
 
-with open(f"{args.output}/interactions.json", "w") as f:
+with open(output_dir / "interactions.json", "w") as f:
     json.dump(interaction_sets, f, indent=4)
 
-with open(f"{args.output}/interactions-by-result.json", "w") as f:
+with open(output_dir / "interactions-by-result.json", "w") as f:
     json.dump(int_by_result, f, indent=4)
