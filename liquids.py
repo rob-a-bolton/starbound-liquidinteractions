@@ -25,13 +25,8 @@ os.mkdir(liquid_dir)
 input_dirs = [Path(p) for p in args.liquid]
 liquidfiles_all = []
 
-print("Input dirs: ")
-pprint(input_dirs)
 for dir in input_dirs:
     liquidfiles_all += [f for f in os.scandir(dir) if re.search(".(liquid|patch)$" , f.name)]
-
-print("Liquid files all: ")
-pprint(liquidfiles_all)
 
 def remove_comments(file_path):
     with open(file_path) as f:
@@ -67,6 +62,9 @@ for name, liquid in liquids.items():
     liquid_ids[liquid["liquidId"]] = name
 
 def process_patch(name, entry):
+    if not name in liquids:
+        return
+
     liquid = liquids[name]
     if not (entry['op'] == 'add' and 'interactions' in entry['path']):
         return
